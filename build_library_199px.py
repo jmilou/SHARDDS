@@ -13,8 +13,10 @@ from astropy.io import ascii,fits
 import matplotlib.pyplot as plt
 import sys
 import library as lib
+import pidly
 
 local=False
+
 if local==False:
     library = lib.Library(local=False,channel='left',size=199,pathRDI='RDI_python_dev')
 else:
@@ -23,8 +25,8 @@ else:
 #    library.build_covariance_matrix()
 #    library.save_covariance_matrix()
 library.load_covariance_matrix()
-target = 'HD114082'
+target = 'HD14082B'
 score = library.analyze_correlation(target,highestest_rank_to_test=50,save=True)
-library.build_library(np.where(score>10)[0],filename='library_'+target+'.fits')
+#library.build_library(np.where(score>10)[0],filename='library_'+target+'.fits')
 
 
