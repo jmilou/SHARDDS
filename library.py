@@ -36,7 +36,7 @@ class Library():
             - pathOut_targets: a dictionary with the reduction folder of the targets
             - size: the size of the images we work with
             - channel: the channel we work with (left, right, sum)
-            - rin: the inner rdaius for the correlation
+            - rin: the inner radius for the correlation
             - rout: the outer radius for the correlation
             - frames_nb: a dictionnary with the number of frames of each target
             - dist_center: an array of shape (size,size) with the distance from the center
@@ -138,7 +138,10 @@ class Library():
             if previous_target_id != target_index:
                 target = target_list[i]
                 print('Reading {0:s}'.format(target))
-                cube_to_load = os.path.join(self.pathOut_targets[target],'{0:s}_{1:d}x{1:d}_{2:s}_O.fits'.format(target,self.size,self.channel))
+                if self.size==255: # we have to introduce an exception here for the rebinned case.
+                    cube_to_load = os.path.join(self.pathOut_targets[target],'{0:s}_1024x1024_rebinned_255x255_{2:s}_O.fits'.format(target,self.size,self.channel))
+                else:
+                    cube_to_load = os.path.join(self.pathOut_targets[target],'{0:s}_{1:d}x{1:d}_{2:s}_O.fits'.format(target,self.size,self.channel))
                 previous_target_id = target_index
                 original_cube = fits.getdata(cube_to_load)                
             cube[counter,:,:] = original_cube[id_list[counter],:,:]
@@ -235,8 +238,25 @@ class Library():
                 correlation_matrix[iframe1,iframe2] = corr_coeff
         return correlation_matrix                                
         
-    def analyze_correlation(self,target_name,highestest_rank_to_test=10,save=True):
+    def analyze_correlation(self,target_name,highest_rank_to_test=10,save=True):
         """
+        Analyze the correlation of the frames from the library with the frames of
+        a specific target. Plots the results in pdf and saves the analysis in a fits file
+        Input:
+            - target_name: the name of the target to analyze the correlation (string)
+            - highest_rank_to_test: for each frame of the target, the algorithm will 
+                                    find the correlation coefficient with all the other 
+                                    frames of the library. It will sort by descending order
+                                    these correlation coefficient and only keep the Nth
+                                    frames of the library most highly correlated, N being
+                                    the parameter highest_rank_to_test. By default 10.
+        Output:
+            - score: an 1D array of size the number of frames in the library containing for 
+                    each frame the number of times it appears in the top N most 
+                    correlated frames with the target frames. This number is therefore 
+                    between 0 (it never appears within the top N) and the number of frames
+                    of the target (it is always within the top N), where N is 
+                    the parameter highest_rank_to_test
         """
         nframes_target = self.frames_nb[target_name] # number of frames of the target to analyze
         nframes_othertargets = self.total_frames-nframes_target # number of remaining frames
@@ -295,13 +315,13 @@ class Library():
         # sorted such that correlation_rank[:,0] is the indices of the target frames the 
         # the most correlated with each frames from the remaing targets.
         correlation_rank = np.ma.argsort(ma_sub_correlation_matrix,axis=1,fill_value=0)[:,::-1]
-        highestest_rank_to_test = np.min([highestest_rank_to_test,nframes_othertargets])#nframes_target]) # we can't probe more than the number of target frames!
-        rank_array = np.arange(1,highestest_rank_to_test+1)
-        nb_correlated_frames = np.zeros((highestest_rank_to_test),dtype=int)
-        cum_nb_correlated_frames = np.zeros((highestest_rank_to_test),dtype=int)
-        min_correlation = np.zeros((highestest_rank_to_test))
-        min_min_correlation = np.zeros((highestest_rank_to_test))
-        mean_correlation = np.zeros((highestest_rank_to_test))
+        highest_rank_to_test = np.min([highest_rank_to_test,nframes_othertargets])#nframes_target]) # we can't probe more than the number of target frames!
+        rank_array = np.arange(1,highest_rank_to_test+1)
+        nb_correlated_frames = np.zeros((highest_rank_to_test),dtype=int)
+        cum_nb_correlated_frames = np.zeros((highest_rank_to_test),dtype=int)
+        min_correlation = np.zeros((highest_rank_to_test))
+        min_min_correlation = np.zeros((highest_rank_to_test))
+        mean_correlation = np.zeros((highest_rank_to_test))
         indices_correlated_frames = []
         occurence_correlated_frames = []
         score = np.zeros((self.total_frames),dtype=int)
@@ -353,7 +373,7 @@ class Library():
         if save:
             plt.savefig(os.path.join(self.pathRDI,\
                 '{0:d}x{0:d}_{1:s}_rin{2:d}_rout{3:d}_{4:s}_score_up_to_{5:d}.pdf'.format(\
-                 self.size,self.channel,self.rin,self.rout,target_name,highestest_rank_to_test)))
+                 self.size,self.channel,self.rin,self.rout,target_name,highest_rank_to_test)))
 
 #        target_averaged_sub_correlation_matrix = np.mean(sub_correlation_matrix,axis=0)  
 #        target_dispersion_sub_correlation_matrix = np.std(sub_correlation_matrix,axis=0)            
@@ -380,7 +400,7 @@ class Library():
         ax2.plot(np.ma.std(ma_sub_correlation_matrix,axis=0))
         ax2.set_ylabel('Dispersion of the covariance coefficient')
         for ax in [ax1,ax2]:
-            ax.set_xlabel('Frame number (exluding the target')
+            ax.set_xlabel('Frame number (excluding the target)')
             ax.grid(True)
         if save:
             plt.savefig(os.path.join(self.pathRDI,\
@@ -399,7 +419,7 @@ if __name__=='__main__':
 #    target = 'HD9672'
     target = 'HD71722'
 
-#    score = library.analyze_correlation(target,highestest_rank_to_test=50,save=True)
+#    score = library.analyze_correlation(target,highest_rank_to_test=50,save=True)
 #    library.get_name_and_id_from_index(353)
 #    library.get_name_and_id_from_index_list([353,340,83])
 #    library.build_library([353,340,83],filename='library_HD182681.fits')
