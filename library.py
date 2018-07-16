@@ -440,4 +440,4 @@ if __name__=='__main__':
 #    rdi = adi.derotateCollapse(cube_subtracted_rdi,parang_target,rotoff=0.,cleanMean=1.)
 #    adi = adi.derotateCollapse(cube_subtracted_adi,parang_target,rotoff=0.,cleanMean=1.)
     
-    ds9.display(rdi,adi)
+#    ds9.display(rdi,adi)
