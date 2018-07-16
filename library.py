@@ -103,9 +103,8 @@ class Library():
     def get_name_and_id_from_index(self,index):
         """
         """
-        if index>self.frames_nb:
-            print('Index {0:d} greater than the number of frames. Returning'.format(index))
-            return
+        if index>self.total_frames:
+            raise IndexError('Index {0:d} greater than the total number of frames of the library ({1:d})!'.format(index,self.total_frames))
         start_minus_id = index-self.frames_start_index_list
         id_target = len(start_minus_id[start_minus_id>=0])-1
         id_frame = start_minus_id[id_target]
@@ -250,6 +249,7 @@ class Library():
                                     these correlation coefficient and only keep the Nth
                                     frames of the library most highly correlated, N being
                                     the parameter highest_rank_to_test. By default 10.
+            - save : 
         Output:
             - score: an 1D array of size the number of frames in the library containing for 
                     each frame the number of times it appears in the top N most 
@@ -417,26 +417,27 @@ if __name__=='__main__':
 #    library.save_covariance_matrix()
     library.load_covariance_matrix()
 #    target = 'HD9672'
-    target = 'HD71722'
+#    target = 'HD71722'
+    target = 'HD105'
 
 #    score = library.analyze_correlation(target,highest_rank_to_test=50,save=True)
 #    library.get_name_and_id_from_index(353)
 #    library.get_name_and_id_from_index_list([353,340,83])
 #    library.build_library([353,340,83],filename='library_HD182681.fits')
-#    library.build_library(np.where(score>10)[0],filename='library_'+target+'.fits')
+    library.build_library(np.where(score>10)[0],filename='library_{0:s}_{1:d}x{1:d}_{2:s}_O.fits'.format(target,library.size,library.channel)
 
-    highest_correlated_indices = library.find_highest_correlated_frames(target)
-    cube = library.build_library(highest_correlated_indices)
-    cube_target = fits.getdata(os.path.join(library.pathOut_targets[target],target+'_199x199_left_O.fits'))
-    parang_target = fits.getdata(os.path.join(library.pathOut_targets[target],target+'_derotation_angles_O.fits'))
-    import vip
-    ds9=vip.fits.vipDS9()
-    ds9.display(cube,cube_target[0:32,:,:])
-    import adiUtilities as adi
-    cube_subtracted_rdi = adi.simple_reference_subtraction(cube_target,cube,library.mask_correlation)
-    cube_subtracted_adi = adi.subtractMedian(cube_target,cleanMean=1.,mask=None)
-    ds9.display(cube,cube_subtracted_adi,cube_subtracted_rdi)
-    rdi = adi.derotateCollapse(cube_subtracted_rdi,parang_target,rotoff=0.,cleanMean=1.)
-    adi = adi.derotateCollapse(cube_subtracted_adi,parang_target,rotoff=0.,cleanMean=1.)
+#    highest_correlated_indices = library.find_highest_correlated_frames(target)
+#    cube = library.build_library(highest_correlated_indices)
+#    cube_target = fits.getdata(os.path.join(library.pathOut_targets[target],target+'_199x199_left_O.fits'))
+#    parang_target = fits.getdata(os.path.join(library.pathOut_targets[target],target+'_derotation_angles_O.fits'))
+#    import vip
+#    ds9=vip.fits.vipDS9()
+#    ds9.display(cube,cube_target[0:32,:,:])
+#    import adiUtilities as adi
+#    cube_subtracted_rdi = adi.simple_reference_subtraction(cube_target,cube,library.mask_correlation)
+#    cube_subtracted_adi = adi.subtractMedian(cube_target,cleanMean=1.,mask=None)
+#    ds9.display(cube,cube_subtracted_adi,cube_subtracted_rdi)
+#    rdi = adi.derotateCollapse(cube_subtracted_rdi,parang_target,rotoff=0.,cleanMean=1.)
+#    adi = adi.derotateCollapse(cube_subtracted_adi,parang_target,rotoff=0.,cleanMean=1.)
     
     ds9.display(rdi,adi)
