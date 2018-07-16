@@ -420,11 +420,11 @@ if __name__=='__main__':
 #    target = 'HD71722'
     target = 'HD105'
 
-#    score = library.analyze_correlation(target,highest_rank_to_test=50,save=True)
+    score = library.analyze_correlation(target,highest_rank_to_test=50,save=True)
 #    library.get_name_and_id_from_index(353)
 #    library.get_name_and_id_from_index_list([353,340,83])
 #    library.build_library([353,340,83],filename='library_HD182681.fits')
-    library.build_library(np.where(score>10)[0],filename='library_{0:s}_{1:d}x{1:d}_{2:s}_O.fits'.format(target,library.size,library.channel)
+    library.build_library(np.where(score>10)[0],filename='library_{0:s}_{1:d}x{1:d}_{2:s}_O.fits'.format(target,library.size,library.channel))
 
 #    highest_correlated_indices = library.find_highest_correlated_frames(target)
 #    cube = library.build_library(highest_correlated_indices)
@@ -439,5 +439,4 @@ if __name__=='__main__':
 #    ds9.display(cube,cube_subtracted_adi,cube_subtracted_rdi)
 #    rdi = adi.derotateCollapse(cube_subtracted_rdi,parang_target,rotoff=0.,cleanMean=1.)
 #    adi = adi.derotateCollapse(cube_subtracted_adi,parang_target,rotoff=0.,cleanMean=1.)
-    
 #    ds9.display(rdi,adi)
