@@ -127,6 +127,8 @@ class Library():
             - index_list: a list of indices from the 
             - filename: if not None, saves the library as a fits file with the name
             filename.
+        Output:
+            - the library as a cube
         """
         target_list,id_list = self.get_name_and_id_from_index_list(index_list)
         cube = np.ndarray((len(index_list),self.size,self.size))
