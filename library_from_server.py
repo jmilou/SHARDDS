@@ -10,8 +10,8 @@ import os
 import numpy as np
 #import irdisDataHandler as i
 import pdb
-#import vip_hci as vip
-#ds9=vip.Ds9Window()
+#import vip
+#ds9=vip.fits.vipDS9()
 from astropy.io import ascii,fits
 import matplotlib.pyplot as plt
 #from astropy import units as u
@@ -21,53 +21,41 @@ from image_tools import distance_array
 import matplotlib.gridspec as gridspec 
 
 class Library():
-    """
-    This class represents a RDI library
-
-    Class attributes:
-        - pathRDI
-        - pathRoot
-        - pathSparta
-        - targets: a list with all targets
-        - pathOut_targets: a dictionary with the reduction folder of the targets
-        - size: the size of the images we work with
-        - channel: the channel we work with (left, right, sum)
-        - rin: the inner radius for the correlation
-        - rout: the outer radius for the correlation
-        - frames_nb: a dictionnary with the number of frames of each target
-        - dist_center: an array of shape (size,size) with the distance from the center
-        - frames_starta_index:  a dictionnary where keys are target names and values are
-                                the index at which the target starts in the master correlation matrix
-        - mask_correlation: an boolean array of shape (size,size) contain 1 for pixels to be used in the correlation
-        - total_frames: the total number of frames including all targets
-        - correlation_matrix: the large correlation matrix
-
-    Class methods:
-        - list_targets
-        - get_global_index
-        - get_name_and_id_from_index
-        - get_name_and_id_from_index_list
-
+    """This class represents a library
     """
 
      # class variables
 
-    def __init__(self,channel='left',size=199,rin=30,rout=60,pathRDI='RDI_python'):
+    def __init__(self,local=True,channel='left',size=199,rin=30,rout=60,pathRDI='RDI_python'):
         """
-        Constructor of the class
-        
-        Input:
-            - size: the size of the images we work with. Default: 199
-            - channel: the channel we work with (left, right, sum). Defaut: left
-            - rin: the inner radius for the correlation. Defaut: 30
-            - rout: the outer radius for the correlation. Defaut: 60
-            - pathRDI: the relative path where the correlation matrix is saved. 
-                       Default: pathRoot/../pathRDI
+        Class attributes:
+            - pathRDI
+            - pathRoot
+            - pathSparta
+            - targets: a list with all targets
+            - pathOut_targets: a dictionary with the reduction folder of the targets
+            - size: the size of the images we work with
+            - channel: the channel we work with (left, right, sum)
+            - rin: the inner radius for the correlation
+            - rout: the outer radius for the correlation
+            - frames_nb: a dictionnary with the number of frames of each target
+            - dist_center: an array of shape (size,size) with the distance from the center
+            - frames_starta_index:  a dictionnary where keys are target names and values are
+                                    the index at which the target starts in the master correlation matrix
+            - mask_correlation: an boolean array of shape (size,size) contain 1 for pixels to be used in the correlation
+            - total_frames: the total number of frames including all targets
+            - correlation_matrix: the large correlation matrix
         """        
-        self.pathRoot = '/Volumes/SHARDDS/Data/survey_disk'
-        self.pathSparta = '/Volumes/SHARDDS/Data/sparta'
-        self.targets = self.list_targets()
+        if local:
+            self.pathRoot = '/diskb/Data/survey_disk'
+            self.pathSparta = '/diskb/Data/sparta'
+            self.targets = self.list_targets()
+        else:
+            self.pathRoot = '/Volumes/SHARDDS_data/survey_disk'
+            self.pathSparta = '/Volumes/SHARDDS_data/sparta'
+            self.targets = ['HD60491','HD71722','HD218340','HD14082B','HD182681']
         self.pathRDI = os.path.join(self.pathRoot,'../'+pathRDI)
+
         self.size = size
         self.channel=channel
         self.rin=rin
@@ -76,6 +64,8 @@ class Library():
         self.frames_start_index = {}
         self.frames_start_index_list = np.ndarray((len(self.targets)),dtype=int)       
         self.dist_center = distance_array([self.size,self.size],verbose=False)
+#        self.mask_correlation = np.ndarray((self.size,self.size),dtype=int)*0
+#        self.mask_correlation[np.logical_and(self.dist_center<rout,self.dist_center>rin)]=1
         self.mask_correlation = np.logical_and(self.dist_center<rout,self.dist_center>rin)
         self.pathOut_targets = {}
         
@@ -96,9 +86,6 @@ class Library():
         
     def list_targets(self):
         """
-        Returns a list of all targets in the library
-        Output: 
-            - list of strings
         """
         targets_tmp = os.listdir(self.pathRoot)
         targets = []        
@@ -110,25 +97,11 @@ class Library():
 
     def get_global_index(self,target_name,local_index):
         """
-        Returns the global index of a frame in the library, knowing the target 
-        name and the local index of the frame for the target
-        Input:
-            - target_name: string with the target name
-            - local index: index of the frame for the desired target
-        Output:
-            - global index of the frame
         """
         return self.frames_start_index[target_name]+local_index
 
     def get_name_and_id_from_index(self,index):
         """
-        Returns the name of the target and local index of a frame knowing its
-        global index in the library
-        Input:
-            - index: global index of the frame in the library
-        Output:
-            - name of the target
-            - local index
         """
         if index>self.total_frames:
             raise IndexError('Index {0:d} greater than the total number of frames of the library ({1:d})!'.format(index,self.total_frames))
@@ -139,13 +112,6 @@ class Library():
     
     def get_name_and_id_from_index_list(self,index_list):
         """
-        Returns a list of target names and of local indices, corresponding to
-        the list of global indices
-        Input:
-            - index_list: global index of the frame in the library
-        Output:
-            - list of target names 
-            - list of local indices
         """
         target_list = []
         id_list = []
@@ -161,8 +127,6 @@ class Library():
             - index_list: a list of indices from the 
             - filename: if not None, saves the library as a fits file with the name
             filename.
-        Output:
-            - the library as a cube
         """
         target_list,id_list = self.get_name_and_id_from_index_list(index_list)
         cube = np.ndarray((len(index_list),self.size,self.size))
@@ -188,10 +152,6 @@ class Library():
             
     def build_covariance_matrix(self):
         """
-        Builds the covariance matrix of the library by computing the covariance
-        between each targets of the library.
-        It can take time to compute.
-        No input and no output. The covariance is an attribute of the class.
         """
         for id_target1,target1 in enumerate(self.targets):
             print('Correlating target {0:s} ({1:d}/{2:d})'.format(target1,id_target1+1,len(self.targets)))
@@ -207,9 +167,6 @@ class Library():
              
     def save_covariance_matrix(self):
         """
-        Saves the covariance matrix in a file located in pathRDI (attribute of 
-        the class) with a name specific to the attributes rin, rout and channel.
-        No input nor output.
         """
         filename = os.path.join(self.pathRDI,'{0:d}x{0:d}_{1:s}_correlation_matrix_rin{2:d}_rout{3:d}.fits'.format(\
                                   self.size,self.channel,self.rin,self.rout))
@@ -218,10 +175,6 @@ class Library():
         
     def load_covariance_matrix(self):
         """
-        Loads the covariance matrix from the file located in pathRDI (attribute of 
-        the class).
-        No input nor output.
-        
         """
         filename = os.path.join(self.pathRDI,'{0:d}x{0:d}_{1:s}_correlation_matrix_rin{2:d}_rout{3:d}.fits'.format(\
                                   self.size,self.channel,self.rin,self.rout))
@@ -230,17 +183,15 @@ class Library():
         
     def find_highest_correlated_frames(self,target_name):
         """
-        For each individual frame of a science target, this function finds the 
-        most highly correlated frame of the mast library excluding the target itself
-        and it returns it. The output is a list of the nearest frame for each science
-        frame.
+        Finds the highest correlated frames for a given target, excluding the 
+        target from the library.
         Input:
             - target_name: name of the target
         Output
-            - list of indices, with the same length as the number of images of 
-               the target
+            - list of indices 
         """
         nframes_target = self.frames_nb[target_name] # number of frames of the target to analyze
+        index_target_first_frame = self.get_global_index(target_name,0)
 #        index_most_correlated_frames = np.ndarray((nframes_target))       
 
         target_index_1darray = np.arange(nframes_target) #1D array 
@@ -256,84 +207,9 @@ class Library():
         correlation_index_max = np.ma.argmax(ma_sub_correlation_matrix,axis=1)        
         return correlation_index_max        
 
-    def find_highest_correlated_frames_individually(self,target_name,rank=10,plot=True):
-        """
-        For each individual frame of a science target, this function finds the N
-        most highly correlated frameS of the mast library excluding the target itself 
-        (N being the rank entered in input)
-        and it returns it. The output is a list of the nearest frame for each science
-        frame.
-        Input:
-            - target_name: name of the target
-            - rank: number of frames to consider as highly correlated. Default: 10
-            - plot: boolean to plot the result as a graph
-        Output
-            - indices_most_correlated_frames: a 2D array storing the indices of the most 
-                   highly correlated frames. The first dimension is the index of 
-                   target frame considered, the 2nd dimension is the index of the rank
-                   (from 0 to rank, 0 being the most correlated,... )
-            - correlation_most_correlated_frames: a 2D array storing the correlation
-                   values of the most 
-                   highly correlated frames. The first dimension is the index of 
-                   target frame considered, the 2nd dimension is the index of the rank
-                   (from 0 to rank, 0 being the most correlated,... )
-        """
-        nframes_target = self.frames_nb[target_name] # number of frames of the target to analyze
-        
-        indices_most_correlated_frames = np.ndarray((nframes_target,rank),dtype=int) 
-        correlation_most_correlated_frames = np.ndarray((nframes_target,rank))       
-
-        target_index_1darray = np.arange(nframes_target) #1D array of length nframes_target
-        global_index_1darray = np.arange(self.total_frames) # 1D array of length self.total_frames
-        # global_index_subarray is a 2D array with dimension of nframes_target x self.total_frames
-        global_index_subarray, _ = np.meshgrid(global_index_1darray,target_index_1darray)
-        index_target_first_frame = self.get_global_index(target_name,0)
-        index_target_last_frame  = index_target_first_frame+nframes_target
-        
-        # sub_correlation_matrix has a dimension of nframes_target x self.total_frames
-        sub_correlation_matrix = self.correlation_matrix[index_target_first_frame:index_target_last_frame,:]
-        ma_global_index_subarray = np.ma.masked_inside(global_index_subarray,index_target_first_frame,index_target_last_frame-1)
-        # the -1 above is because np.ma.masked_inside works with the condition v1 <= x <= v2
-        ma_sub_correlation_matrix = np.ma.masked_array(sub_correlation_matrix,mask=ma_global_index_subarray.mask)        
-        rank_indices = ma_sub_correlation_matrix.argsort(axis=1,endwith=False) # endwith=False ensures 
-        for i in range(nframes_target):
-            sorted_indices_highest_correlated_frames = rank_indices[i,-1:-1-rank:-1]
-            if i==0:
-                print('For the first frame, the list of the highest correlated frames is ',sorted_indices_highest_correlated_frames)                
-            indices_most_correlated_frames[i,:] = [ma_global_index_subarray[i,j] for j in sorted_indices_highest_correlated_frames]
-            correlation_most_correlated_frames[i,:] = [ma_sub_correlation_matrix[i,j] for j in sorted_indices_highest_correlated_frames]
-        if plot:
-            plt.close(1)
-            plt.figure(1, figsize=(10,5))
-            plt.plot(np.arange(nframes_target),\
-                             np.mean(correlation_most_correlated_frames,axis=1),\
-                             color='forestgreen',label='mean')
-            plt.fill_between(np.arange(nframes_target),\
-                             np.min(correlation_most_correlated_frames,axis=1),\
-                             np.max(correlation_most_correlated_frames,axis=1),\
-                             color='forestgreen',alpha=0.2,label='min/max')
-            plt.title(target_name,fontsize=18)
-            plt.ylabel('Correlation coefficient',fontsize=18)
-            plt.xlabel('Frames',fontsize=18)
-            plt.grid()
-            plt.savefig(os.path.join(self.pathRDI,\
-                '{0:d}x{0:d}_{1:s}_rin{2:d}_rout{3:d}_{4:s}_correlation_rank_{5:03d}.pdf'.format(\
-                 self.size,self.channel,self.rin,self.rout,target_name,rank)))                        
-            print('Saving the plot in {0:s}'.format(os.path.join(self.pathRDI,\
-                '{0:d}x{0:d}_{1:s}_rin{2:d}_rout{3:d}_{4:s}_correlation_rank_{5:03d}.pdf'.format(\
-                 self.size,self.channel,self.rin,self.rout,target_name,rank))))
-        return indices_most_correlated_frames, correlation_most_correlated_frames       
-
     def correlate_targets(self,target1,target2):
         """
-        Computes the correlation of the frames of 2 targets and returns the 
-        correlation matrix
-        Input:
-            - target1: name of the first target (string)
-            - target2: name of the second target (string)
-        Output:
-            - correlation matrix of dimension nframes1 x nframes2 where nframes1
-            and nframes2 are the number of frames of each target. 
+        Computes the correlation of the frames of 2 targets
         """
         target_list = [target1,target2]
         for t in target_list:
@@ -531,121 +407,32 @@ class Library():
                 '{0:d}x{0:d}_{1:s}_rin{2:d}_rout{3:d}_{4:s}_mean_std_covariance.pdf'.format(\
                  self.size,self.channel,self.rin,self.rout,target_name)))
         return score
-    
-    def correlate_frame_with_target(self,frame,target):
-        """
-        Computes the correlation of the frame with a given target of the 
-        library and returns the correlation vector.
-        This function was created to allow any user to correlate a target not in 
-        the library with a target in the library.
-        Input:
-            - frame: a frame
-            - target: a target name from the library
-        Output:
-            - correlation vector of length the number of frames in the library 
-        """
-        if target not in self.targets:
-            print('Target {0:s} no in the target list'.format(target))
-            return
-        if self.size!=255:
-            cube = fits.getdata(os.path.join(self.pathOut_targets[target],'{0:s}_{1:d}x{1:d}_{2:s}_O.fits'.format(target,self.size,self.channel)))
-        else: # we are in full frame mode here
-            cube = fits.getdata(os.path.join(self.pathOut_targets[target],'{0:s}_1024x1024_rebinned_255x255_{1:s}_O.fits'.format(target,self.channel)))
-        nframes_target = cube.shape[0]
-        correlation_vector = np.ndarray((nframes_target))
-        img1 = frame[self.mask_correlation]
-        img1 -= np.mean(img1)        
-        for iframe in range(nframes_target):
-            img2 = cube[iframe,:,:][self.mask_correlation]
-            img2 -= np.mean(img2)
-            corr_coeff = np.nansum(img1*img2) / (np.sqrt(np.nansum(img1**2)) * np.sqrt(np.nansum(img2**2)))
-            correlation_vector[iframe] = corr_coeff
-        return correlation_vector                                
-
-    def correlate_frame_with_library(self,frame,save=True):
-        """
-        Computes the correlation of the frame with the full library and returns the 
-        correlation vector.
-        This function was created to allow any user to correlate a target not in 
-        the library with all targets in the library.
-        
-        Input:
-            - frame: a frame
-        Output:
-            - correlation vector of length the number of frames in the library 
-        """
-        correlation_vector = np.ndarray((self.total_frames))        
-        for id_target,target in enumerate(self.targets):
-            print('Correlating target {0:s} ({1:d}/{2:d})'.format(target,id_target+1,len(self.targets)))
-            corr_subvector = self.correlate_frame_with_target(frame,target)
-            correlation_vector[self.get_global_index(target,0):self.get_global_index(target,self.frames_nb[target])] = \
-                                    corr_subvector
-        if save:
-            plt.close(2)
-            plt.figure(2, figsize=(20,5))
-            plt.scatter(np.arange(self.total_frames),correlation_vector,s=2,color='forestgreen')
-            for id_target,target in enumerate(self.targets[::2]):    
-                plt.axvspan(self.get_global_index(target,0),\
-                           self.get_global_index(target,self.frames_nb[target]),\
-                           color='grey',alpha=0.3)
-            plt.ylabel('Correlation coefficient',fontsize=18)
-            plt.xlabel('Frames',fontsize=18)
-            plt.grid()
-            plt.savefig(os.path.join(self.pathRDI,\
-                '{0:d}x{0:d}_{1:s}_rin{2:d}_rout{3:d}_correlation_specific_frame.pdf'.format(\
-                 self.size,self.channel,self.rin,self.rout)))                        
-
-            plt.close(3)
-            plt.figure(3, figsize=(7,5))
-            corr_threshold = np.linspace(0.7,1,11)
-            nb_targets_in_lib = np.zeros_like(corr_threshold)
-            for i,threshold in enumerate(corr_threshold):
-                nb_targets_in_lib[i] = np.sum(correlation_vector>threshold)
-            plt.plot(corr_threshold,nb_targets_in_lib)
-            plt.grid()
-            plt.xlabel('Correlation coefficient lower threshold')
-            plt.ylabel('Number of frames in the library')
-            plt.savefig(os.path.join(self.pathRDI,\
-                '{0:d}x{0:d}_{1:s}_rin{2:d}_rout{3:d}_nb_target_in_lib_specific_frame.pdf'.format(\
-                 self.size,self.channel,self.rin,self.rout)))                        
-        return correlation_vector                                
-
-
             
 if __name__=='__main__':  
     
-#    library = Library(channel='left',size=199,pathRDI='RDI_python_dev')     
-    library = Library(channel='left',size=199,pathRDI='RDI_python')     
+    library = Library(local=False,channel='left',size=199,pathRDI='RDI_python_dev')     
+#    library = Library(local=True,channel='left',size=199,pathRDI='RDI_python')     
 
 #    library.build_covariance_matrix()
 #    library.save_covariance_matrix()
     library.load_covariance_matrix()
 #    target = 'HD9672'
 #    target = 'HD71722'
-#    target = 'HD105'
-    target = 'HD206893'
+    target = 'HD105'
 
-    score = library.analyze_correlation(target,highest_rank_to_test=10,save=True)
+    score = library.analyze_correlation(target,highest_rank_to_test=50,save=True)
 #    library.get_name_and_id_from_index(353)
 #    library.get_name_and_id_from_index_list([353,340,83])
 #    library.build_library([353,340,83],filename='library_HD182681.fits')
-#    library.build_library(np.where(score>10)[0],filename='library_{0:s}_{1:d}x{1:d}_{2:s}_O.fits'.format(target,library.size,library.channel))
+    library.build_library(np.where(score>10)[0],filename='library_{0:s}_{1:d}x{1:d}_{2:s}_O.fits'.format(target,library.size,library.channel))
 
-    import vip_hci as vip
-    ds9=vip.Ds9Window()
-    
-    highest_correlated_indices = library.find_highest_correlated_frames(target)
-    cube = library.build_library(highest_correlated_indices)
-    cube_target = fits.getdata(os.path.join(library.pathOut_targets[target],target+'_199x199_left_O.fits'))
-    parang_target = fits.getdata(os.path.join(library.pathOut_targets[target],target+'_derotation_angles_O.fits'))
-    ds9.display(cube[6:9,:,:],cube_target[6:9,:,:])
-
-
-
-    i=0
-    corr_vector = library.correlate_frame_with_library(cube_target[i,:,:],save=False)
-
-
+#    highest_correlated_indices = library.find_highest_correlated_frames(target)
+#    cube = library.build_library(highest_correlated_indices)
+#    cube_target = fits.getdata(os.path.join(library.pathOut_targets[target],target+'_199x199_left_O.fits'))
+#    parang_target = fits.getdata(os.path.join(library.pathOut_targets[target],target+'_derotation_angles_O.fits'))
+#    import vip
+#    ds9=vip.fits.vipDS9()
+#    ds9.display(cube,cube_target[0:32,:,:])
 #    import adiUtilities as adi
 #    cube_subtracted_rdi = adi.simple_reference_subtraction(cube_target,cube,library.mask_correlation)
 #    cube_subtracted_adi = adi.subtractMedian(cube_target,cleanMean=1.,mask=None)
@@ -653,22 +440,3 @@ if __name__=='__main__':
 #    rdi = adi.derotateCollapse(cube_subtracted_rdi,parang_target,rotoff=0.,cleanMean=1.)
 #    adi = adi.derotateCollapse(cube_subtracted_adi,parang_target,rotoff=0.,cleanMean=1.)
 #    ds9.display(rdi,adi)
-    
-
-# For alex survey  
-#    library = Library(local=False,channel='left',size=199,pathRDI='RDI_python_dev')     
-#    path_alex = '/Users/jmilli/Documents/survey_discs/alex_bohn_survey'
-#    cube_alex = fits.getdata(os.path.join(path_alex,'2MASSJ12160114-5614068_arr_cut.fits'))
-#    cube_alex.shape #(8, 201, 201)
-#    cube_alex_cropped = cube_alex[:,1:-1,1:-1]
-#    cube_alex_cropped.shape #(8, 201, 201)
-#    median_cube_alex_cropped = np.median(cube_alex_cropped,axis=0)
-##    corr_vector = library.correlate_frame_with_target(median_cube_alex_cropped,'HD60491')
-#    full_corr_vector = library.correlate_frame_with_library(median_cube_alex_cropped,save=True)
-#
-#    threshold = 0.75
-#    library.build_library(np.where(full_corr_vector>threshold)[0],\
-#                  filename='library_alex_{0:02d}_{1:d}x{1:d}_{2:s}_O.fits'.format(int(np.round(threshold*100)),\
-#                                         library.size,library.channel))
-#
-    

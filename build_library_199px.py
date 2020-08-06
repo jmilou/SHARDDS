@@ -13,14 +13,16 @@ from astropy.io import ascii,fits
 import matplotlib.pyplot as plt
 import sys
 import library as lib
-import pidly
+#import pidly
 
 local=False
+#local=True
 
 if local==False:
     library = lib.Library(local=False,channel='left',size=199,pathRDI='RDI_python_dev')
 else:
     library = lib.Library(local=True,channel='left',size=199,pathRDI='RDI_python')
+
 
 #    library.build_covariance_matrix()
 #    library.save_covariance_matrix()

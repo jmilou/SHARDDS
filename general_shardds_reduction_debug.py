@@ -10,7 +10,7 @@ import os
 import numpy as np
 import irdisDataHandler as i
 import pdb
-import vip
+import vip_hci as vip
 #ds9=vip.fits.vipDS9()
 from astropy.io import ascii,fits
 import matplotlib.pyplot as plt
@@ -19,8 +19,8 @@ import pandas as pd
 import sphere_utilities as sph
 from contrast_utilities import contrast_curve_from_throughput
 
-local = True
-#local = False
+#local = True
+local = False
 
 if local:
     pathRoot = '/diskb/Data/survey_disk'

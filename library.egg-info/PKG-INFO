@@ -1,0 +1,11 @@
+Metadata-Version: 1.0
+Name: library
+Version: 0.1
+Summary: Tool to create a library based on the SHARDDS program
+Home-page: https://github.com/jmilou/SHARDDS
+Author: Julien Milli
+Author-email: jmilli@eso.org
+License: MIT
+Description: UNKNOWN
+Keywords: reference star differential imaging
+Platform: UNKNOWN
